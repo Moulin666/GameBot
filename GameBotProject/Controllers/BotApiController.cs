@@ -1,37 +1,41 @@
 ﻿using System;
+using System.Linq;
 using System.Net;
+using GameBotProject.Models;
+using GameBotProject.Models.DataBaseModels;
 using GameBotProject.Models.VkApiModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 
 namespace GameBotProject.Controllers
 {
-    [Route("")]
+	[Route("")]
     public class BotApiController : Controller
     {
-        private readonly IConfiguration configuration;
+        private readonly IConfiguration _configuration;
+		private readonly DataBaseContext _context;
 
-        public BotApiController(IConfiguration configuration)
+        public BotApiController(IConfiguration configuration, DataBaseContext context)
         {
-            this.configuration = configuration;
+            _configuration = configuration;
+	        _context = context;
         }
 
         [HttpGet]
         public String OnHandleGetRequest()
         {
-            return "Welcome. Go to www.vk.com/club" + configuration["VkApi:GroupId"];
+	        return "Welcome. Go to www.vk.com/club" + _configuration["VkApi:GroupId"];
         }
 
         [HttpPost]
         public String OnHandleRequest([FromBody] JObject request)
         {
             if (request.GetValue("type").Value<String>() == "confirmation" &&
-               request.GetValue("group_id").Value<String>() == configuration["VkApi:GroupId"])
+               request.GetValue("group_id").Value<String>() == _configuration["VkApi:GroupId"])
             {
-                return configuration["VkApi:ConfirmationCode"];
+                return _configuration["VkApi:ConfirmationCode"];
             }
 
             // Send msg to logs
@@ -42,15 +46,15 @@ namespace GameBotProject.Controllers
 					{
 						MessageNewModel message = request.SelectToken("object").ToObject<MessageNewModel>();
 
-						string msge = string.Format("pId = {0} <br> {1}", message.PeerId, request["object"]);
+						string msge = "Привет";
 
 						var webRequestq = WebRequest.Create(
 							String.Format("{0}messages.send?message={1}&user_id={2}&access_token={3}&v={4}",
-							configuration["VkApi:Url"],
+							_configuration["VkApi:Url"],
 							msge,
 							request.SelectToken("object.peer_id"),
-							configuration["VkApi:AccessToken"],
-							configuration["VkApi:Version"]));
+							_configuration["VkApi:AccessToken"],
+							_configuration["VkApi:Version"]));
 
 						webRequestq.Method = "GET";
 
@@ -68,27 +72,29 @@ namespace GameBotProject.Controllers
 
 							webRequest = WebRequest.Create(
 								String.Format("{0}messages.send?message={1}&user_id={2}&access_token={3}&v={4}",
-								configuration["VkApi:Url"],
+								_configuration["VkApi:Url"],
 								msg,
 								message.PeerId,
-								configuration["VkApi:AccessToken"],
-								configuration["VkApi:Version"]));
+								_configuration["VkApi:AccessToken"],
+								_configuration["VkApi:Version"]));
 
 							webRequest.Method = "GET";
 
 							webRequest.GetResponse();
 						}
-						else if (message.MessageText == "DataBase")
+						else if (message.MessageText == "dbtest")
 						{
-							string msg = "Надо прикрутить базу данных и протестировать его этим методом";
+							DbTest dbTest = _context.DbTest.First();
+
+							string msg = $"Start DataBase test.<br>Return string is {dbTest.ReturnString}";
 
 							webRequest = WebRequest.Create(
 								String.Format("{0}messages.send?message={1}&user_id={2}&access_token={3}&v={4}",
-								configuration["VkApi:Url"],
+								_configuration["VkApi:Url"],
 								msg,
 								message.PeerId,
-								configuration["VkApi:AccessToken"],
-								configuration["VkApi:Version"]));
+								_configuration["VkApi:AccessToken"],
+								_configuration["VkApi:Version"]));
 
 							webRequest.Method = "GET";
 
