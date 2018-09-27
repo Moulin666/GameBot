@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Net;
+using System.Threading.Tasks;
 using GameBotProject.Models;
 using GameBotProject.Models.DataBaseModels;
 using GameBotProject.Models.VkApiModels;
@@ -30,7 +31,7 @@ namespace GameBotProject.Controllers
         }
 
         [HttpPost]
-        public String OnHandleRequest([FromBody] JObject request)
+        public async Task<String> OnHandleRequest([FromBody] JObject request)
         {
             if (request.GetValue("type").Value<String>() == "confirmation" &&
                request.GetValue("group_id").Value<String>() == _configuration["VkApi:GroupId"])
