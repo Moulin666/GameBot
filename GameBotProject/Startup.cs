@@ -1,4 +1,8 @@
-﻿using GameBotProject.Models;
+﻿using System.IO;
+using System.Reflection;
+using GameBotProject.Models;
+using log4net;
+using log4net.Config;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
@@ -10,15 +14,17 @@ namespace GameBotProject
 {
     public class Startup
     {
-        public Startup(IConfiguration configuration)
-        {
-            Configuration = configuration;
-        }
-
         public IConfiguration Configuration { get; }
 
-        // This method gets called by the runtime. Use this method to add services to the container.
-        public void ConfigureServices(IServiceCollection services)
+	    public Startup(IConfiguration configuration)
+	    {
+		    Configuration = configuration;
+
+		    var logRepository = LogManager.GetRepository(Assembly.GetEntryAssembly());
+		    XmlConfigurator.Configure(logRepository, new FileInfo("log4net.config"));
+	    }
+
+		public void ConfigureServices(IServiceCollection services)
         {
 			services.AddDbContext<DataBaseContext>(options =>
 			{
@@ -29,7 +35,6 @@ namespace GameBotProject
             services.AddSingleton(Configuration);
         }
 
-        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
             if (env.IsDevelopment())

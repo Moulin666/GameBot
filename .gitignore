@@ -42,3 +42,6 @@ Thumbs.db
 
 # Asp
 *.pubxml
+
+# My
+*.log
