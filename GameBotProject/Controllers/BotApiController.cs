@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net;
 using System.Reflection;
 using System.Threading.Tasks;
+using GameBotProject.Common;
 using GameBotProject.Message;
 using GameBotProject.Models;
 using GameBotProject.Models.DataBaseModels;
@@ -61,33 +62,39 @@ namespace GameBotProject.Controllers
 					{
 						MessageNewModel messageModel = request.SelectToken("object").ToObject<MessageNewModel>();
 
-						var dictionary = new Dictionary<String, Object>()
+						if (messageModel.MessageText.ToLower() == "начать"
+						    || messageModel.MessageText.ToLower() == "start")
 						{
-							{ "config", _configuration },
-							{ "vkApi", _vkApi },
-							{ "messageNewModel", messageModel }
+							await _vkApi.SendMessage("TODO : Check, if account already register return notify, else return register",
+								messageModel.PeerId);
+
+							break;
+						}
+
+						var dictionary = new Dictionary<Byte, Object>()
+						{
+							{ (byte)MessageParameterCode.Configuration, _configuration },
+							{ (byte)MessageParameterCode.VkApi, _vkApi },
+							{ (byte)MessageParameterCode.MessageModel, messageModel }
 						};
 
 						var messageOperation = messageModel.MessageText.Split(' ').First();
 						var message = new Request(messageOperation, dictionary);
 						var handlers = _requestHandlerList.Where(h => h.MessageOperation == messageOperation.ToLower());
 
+						await _vkApi.SendMessage(string.Format("DEBUG : Operation - {0}. Found {1} handlers.",
+							messageOperation, handlers.Count()), messageModel.PeerId);
+
 						if (!handlers.Any())
 						{
-							await _vkApi.SendMessage(string.Format("Default REQUEST handler: {0}", messageOperation),
+							await _vkApi.SendMessage("TODO : Check, if account already register return hero, else return notify",
 								messageModel.PeerId);
 
-							_log.DebugFormat("Default REQUEST handler: {0}", messageOperation);
+							break;
 						}
-
-						await _vkApi.SendMessage(string.Format("debug: {0}. found {1} handlers.", messageOperation, handlers.Count()),
-							messageModel.PeerId);
 
 						foreach (var handler in handlers)
 						{
-							await _vkApi.SendMessage(string.Format("handler.HandleMessage. MsgOp - {0}", handler.MessageOperation),
-								messageModel.PeerId);
-
 							await handler.HandleMessage(message);
 						}
 					}

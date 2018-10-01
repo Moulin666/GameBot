@@ -8,7 +8,7 @@ namespace GameBotProject.Message
 	{
 		protected readonly String _messageOperation;
 
-		protected readonly Dictionary<String, Object> _parameters;
+		protected readonly Dictionary<Byte, Object> _parameters;
 
 		protected readonly String _debugMessage;
 
@@ -20,7 +20,7 @@ namespace GameBotProject.Message
 			}
 		}
 
-		public Dictionary<String, Object> Parameters
+		public Dictionary<Byte, Object> Parameters
 		{
 			get
 			{
@@ -36,13 +36,13 @@ namespace GameBotProject.Message
 			}
 		}
 
-		public Request (String messageOperation, Dictionary<String, Object> parameters)
+		public Request (String messageOperation, Dictionary<Byte, Object> parameters)
 		{
 			_messageOperation = messageOperation;
 			_parameters = parameters;
 		}
 
-		public Request (String messageOperation, Dictionary<String, Object> parameters, String debugMessage)
+		public Request (String messageOperation, Dictionary<Byte, Object> parameters, String debugMessage)
 			: this(messageOperation, parameters)
 		{
 			_debugMessage = debugMessage;

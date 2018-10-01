@@ -8,6 +8,6 @@ namespace GameBotProject.Message
     {
 		String MessageOperation { get; }
 
-		Dictionary<String, Object> Parameters { get; }
+		Dictionary<Byte, Object> Parameters { get; }
 	}
 }
