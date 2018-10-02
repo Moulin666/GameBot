@@ -4,6 +4,7 @@
     {
 		Configuration,
 		VkApi,
-		MessageModel
-    }
+		MessageModel,
+		DataBase
+	}
 }

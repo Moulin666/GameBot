@@ -42,13 +42,18 @@ namespace GameBotProject.Controllers
         [HttpGet]
         public String OnHandleGetRequest()
         {
-			return "Welcome. Go to www.vk.com/club" + _configuration["VkApi:GroupId"];
+	        return "Welcome. Go to www.vk.com/club" + _configuration["VkApi:GroupId"];
         }
 
         [HttpPost]
         public async Task<String> OnHandleRequest([FromBody] JObject request)
         {
-            if (request.GetValue("type").Value<String>() == "confirmation" &&
+	        if (request.GetValue("secret").Value<String>() != _configuration["VkApi:SecretKey"])
+	        {
+		        return "Error";
+	        }
+
+			if (request.GetValue("type").Value<String>() == "confirmation" &&
                request.GetValue("group_id").Value<String>() == _configuration["VkApi:GroupId"])
             {
                 return _configuration["VkApi:ConfirmationCode"];
@@ -62,33 +67,45 @@ namespace GameBotProject.Controllers
 					{
 						MessageNewModel messageModel = request.SelectToken("object").ToObject<MessageNewModel>();
 
-						if (messageModel.MessageText.ToLower() == "начать"
-						    || messageModel.MessageText.ToLower() == "start")
-						{
-							await _vkApi.SendMessage("TODO : Check, if account already register return notify, else return register",
-								messageModel.PeerId);
-
-							break;
-						}
-
 						var dictionary = new Dictionary<Byte, Object>()
 						{
 							{ (byte)MessageParameterCode.Configuration, _configuration },
 							{ (byte)MessageParameterCode.VkApi, _vkApi },
+							{ (byte)MessageParameterCode.DataBase, _context },
 							{ (byte)MessageParameterCode.MessageModel, messageModel }
 						};
+
+						if (messageModel.MessageText.ToLower() == "начать"
+						    || messageModel.MessageText.ToLower() == "start")
+						{
+							await _requestHandlerList.FirstOrDefault(h => h.MessageOperation == "start")
+								.HandleMessage(new Request("start", dictionary));
+
+							break;
+						}
+
+						Account account = _context.Accounts.FirstOrDefault(a => a.Login == messageModel.FromId);
+						if (account == null)
+						{
+							await _vkApi.SendMessage(
+								"Приветствую тебя странник. <br> Используй команду 'начать' или 'start' чтобы я понял что ты готов к приключениям.",
+								messageModel.FromId);
+							break;
+						}
+
+						// TODO : Check if not subscribe notify and break.
 
 						var messageOperation = messageModel.MessageText.Split(' ').First();
 						var message = new Request(messageOperation, dictionary);
 						var handlers = _requestHandlerList.Where(h => h.MessageOperation == messageOperation.ToLower());
 
 						await _vkApi.SendMessage(string.Format("DEBUG : Operation - {0}. Found {1} handlers.",
-							messageOperation, handlers.Count()), messageModel.PeerId);
+							messageOperation, handlers.Count()), messageModel.FromId);
 
 						if (!handlers.Any())
 						{
 							await _vkApi.SendMessage("TODO : Check, if account already register return hero, else return notify",
-								messageModel.PeerId);
+								messageModel.FromId);
 
 							break;
 						}
