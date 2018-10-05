@@ -132,8 +132,9 @@ namespace GameBotProject.Controllers
 
 						foreach (var handler in handlers)
 							await handler.HandleMessage(message);
-					}
+
 						break;
+					}
 
 					case "group_join":
 						break;
