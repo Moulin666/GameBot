@@ -11,5 +11,6 @@ namespace GameBotProject.Models
 		public virtual DbSet<DbTest> DbTest { get; set; }
 
 		public virtual DbSet<Account> Accounts { get; set; }
+		public virtual DbSet<Character> Characters { get; set; }
     }
 }

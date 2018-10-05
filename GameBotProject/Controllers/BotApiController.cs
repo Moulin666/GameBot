@@ -39,73 +39,113 @@ namespace GameBotProject.Controllers
 	        GatherMessageHandlers();
         }
 
-        [HttpGet]
-        public String OnHandleGetRequest()
-        {
+		[HttpGet]
+		public String OnHandleGetRequest ()
+		{
 			return "Welcome. Go to www.vk.com/club" + _configuration["VkApi:GroupId"];
-        }
+		}
 
-        [HttpPost]
-        public async Task<String> OnHandleRequest([FromBody] JObject request)
-        {
-            if (request.GetValue("type").Value<String>() == "confirmation" &&
-               request.GetValue("group_id").Value<String>() == _configuration["VkApi:GroupId"])
-            {
-                return _configuration["VkApi:ConfirmationCode"];
-            }
-
-            // Send msg to logs
-
-            switch(request.GetValue("type").Value<String>())
+		[HttpPost]
+		public async Task<String> OnHandleRequest ([FromBody] JObject request)
+		{
+			try
 			{
-				case "message_new":
+				if (request.GetValue("secret").Value<String>() != _configuration["VkApi:SecretKey"])
+				{
+					return "Error";
+				}
+
+				if (request.GetValue("type").Value<String>() == "confirmation" &&
+				    request.GetValue("group_id").Value<String>() == _configuration["VkApi:GroupId"])
+				{
+					return _configuration["VkApi:ConfirmationCode"];
+				}
+
+				switch (request.GetValue("type").Value<String>())
+				{
+					case "message_new":
 					{
 						MessageNewModel messageModel = request.SelectToken("object").ToObject<MessageNewModel>();
+
+						var dictionary = new Dictionary<Byte, Object>()
+						{
+							{
+								(byte)MessageParameterCode.Configuration, _configuration
+							},
+							{
+								(byte)MessageParameterCode.VkApi, _vkApi
+							},
+							{
+								(byte)MessageParameterCode.DataBase, _context
+							},
+							{
+								(byte)MessageParameterCode.MessageModel, messageModel
+							}
+						};
 
 						if (messageModel.MessageText.ToLower() == "начать"
 						    || messageModel.MessageText.ToLower() == "start")
 						{
-							await _vkApi.SendMessage("TODO : Check, if account already register return notify, else return register",
-								messageModel.PeerId);
+							if (_requestHandlerList != null)
+								await _requestHandlerList.FirstOrDefault(h => h.MessageOperation == "start")
+									.HandleMessage(new Request("start", dictionary));
 
 							break;
 						}
 
-						var dictionary = new Dictionary<Byte, Object>()
+						Account account = _context.Accounts.FirstOrDefault(a => a.Login == messageModel.FromId);
+						if (account == null)
 						{
-							{ (byte)MessageParameterCode.Configuration, _configuration },
-							{ (byte)MessageParameterCode.VkApi, _vkApi },
-							{ (byte)MessageParameterCode.MessageModel, messageModel }
-						};
+							await _vkApi.SendMessage(
+								"Приветствую тебя странник. <br> Используй команду 'начать' или 'start' чтобы я понял что ты готов к приключениям.",
+								messageModel.FromId);
+							break;
+						}
+
+						object isMemberResult = _vkApi.SendMethod("groups.isMember", "group_id", _configuration["VkApi:GroupId"],
+							"user_id", messageModel.FromId, "extended", "0").Result;
+						try
+						{
+							if (!JObject.Parse(isMemberResult.ToString()).GetValue("response").Value<Boolean>())
+							{
+								await _vkApi.SendMessage(
+									"Чтобы продолжить тебе необходимо вступить в нашу группу.",
+									messageModel.FromId);
+								break;
+							}
+						}
+						catch (Exception ex)
+						{
+							_log.FatalFormat("Is Member Fatal Error - {0}", ex);
+						}
 
 						var messageOperation = messageModel.MessageText.Split(' ').First();
 						var message = new Request(messageOperation, dictionary);
 						var handlers = _requestHandlerList.Where(h => h.MessageOperation == messageOperation.ToLower());
 
-						await _vkApi.SendMessage(string.Format("DEBUG : Operation - {0}. Found {1} handlers.",
-							messageOperation, handlers.Count()), messageModel.PeerId);
-
 						if (!handlers.Any())
 						{
-							await _vkApi.SendMessage("TODO : Check, if account already register return hero, else return notify",
-								messageModel.PeerId);
-
+							await _vkApi.SendMessage("Используй команду 'помощь' чтобы получить список доступных возможностей",
+								messageModel.FromId);
 							break;
 						}
 
 						foreach (var handler in handlers)
-						{
 							await handler.HandleMessage(message);
-						}
 					}
-					break;
+						break;
 
-				case "group_join":
-					break;
+					case "group_join":
+						break;
+				}
+			}
+			catch (Exception ex)
+			{
+				_log.FatalFormat("Error text: {0} | Error help link: {1}", ex, ex.HelpLink);
 			}
 
-            return "ok";
-        }
+			return "ok";
+		}
 
 		public void GatherMessageHandlers()
 		{

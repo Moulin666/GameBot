@@ -16,7 +16,7 @@ namespace GameBotProject.Handlers
 			var vkApi = (VkApi)message.Parameters[(byte)MessageParameterCode.VkApi];
 			var messageModel = (MessageNewModel)message.Parameters[(byte)MessageParameterCode.MessageModel];
 
-			return await vkApi.SendMessage("TestHandler", messageModel.PeerId);
+			return await vkApi.SendMessage("TestHandler", messageModel.FromId);
 		}
 	}
 }
