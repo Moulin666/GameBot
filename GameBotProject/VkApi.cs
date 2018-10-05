@@ -19,7 +19,7 @@ namespace GameBotProject
 			_configuration = configuration;
 		}
 
-		public async Task<Boolean> SendMethod (String method, params String[] args)
+		public async Task<Object> SendMethod (String method, params String[] args)
 		{
 			if (args.Length == 0)
 			{
@@ -56,7 +56,7 @@ namespace GameBotProject
 				string requestResponse = await sr.ReadToEndAsync();
 
 				_log.DebugFormat("Send request. requestUri - {0} | requestResponse - {1}", requestUri, requestResponse);
-				return true;
+				return requestResponse;
 			}
 			catch (Exception e)
 			{
